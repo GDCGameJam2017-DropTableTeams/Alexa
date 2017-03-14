@@ -45,7 +45,7 @@ function handleSessionEndRequest(callback) {
 }
 
 function inSession(intent, session, callback) {
-    var host = "https://testing.atodd.io";
+    var host = "http://beocat.kyle-eisenbarger.com";
 
     switch (intent.name) {
         case "BeginGame":
@@ -55,7 +55,8 @@ function inSession(intent, session, callback) {
             var url = {
                 url: host + route,
                 headers: {
-                    'game-name': gameName
+                    'game-name': gameName,
+                    'alexa-id' : session.user.userId
                 }
             };
             apiRequest(url, function(error, response, body) {
@@ -74,9 +75,58 @@ function inSession(intent, session, callback) {
             break;
         case "PlayGame":
             var route = "/api/play";
+
+            var gameMove = intent.slots.move.value;
+            var url = {
+                url: host + route,
+                headers: {
+                  'alexa-id' : session.user.userId,
+                  'user-request': gameMove
+
+                }
+            };
+
+            apiRequest(url, function(error, response, body) {
+                if (error !== null) {
+                    console.error("ERROR: " + error);
+                }
+                console.info("RESPONSE: " + response);
+                console.info("BODY: " + body);
+                var data = JSON.parse(body);
+                var user_response = data['user-response'];
+                var speechOutput = "<speak><p>" + user_response + "</p></speak>";
+                var repromptText = "<speak>You can hear available commands by saying, help.</speak>";
+                callback({}, buildSpeechletResponse(cardTitle, speechOutput, repromptText, false));
+                });
+
+
             break;
         case "EndGame":
             var route = "/api/end";
+
+            //var gameMove = intent.slots.move.value;
+            var url = {
+                url: host + route,
+                headers: {
+                  'alexa-id' : session.user.userId,
+                  'user-request': "end"
+
+                }
+            };
+
+            apiRequest(url, function(error, response, body) {
+                if (error !== null) {
+                    console.error("ERROR: " + error);
+                }
+                console.info("RESPONSE: " + response);
+                console.info("BODY: " + body);
+                var data = JSON.parse(body);
+                var speechOutput = "<speak><p>" + "You have ended the game." + "</p></speak>";
+                var repromptText = "<speak>You can hear available commands by saying, help.</speak>";
+                callback({}, buildSpeechletResponse(cardTitle, speechOutput, repromptText, true));
+                });
+
+
             break;
     }
 }
@@ -118,7 +168,7 @@ function onSessionEnded(sessionEndedRequest, session) {
 exports.handler = (event, context, callback) => {
     try {
         console.log('event.session.application.applicationId=${event.session.application.applicationId}');
-        if (event.session.application.applicationId !== 'amzn1.ask.skill.25e6ef34-e26b-466b-85d3-7760e5dcdb97') {
+        if (event.session.application.applicationId !== 'amzn1.ask.skill.bcee7169-243a-4d01-9dd3-6a0d899c1fc4') {
             callback('Invalid Application ID');
         }
         if (event.session.new) {
